@@ -1,4 +1,4 @@
-# FreqAI_SV
+# FreqAI SV viewer
 
 ## Project setup
 ```
