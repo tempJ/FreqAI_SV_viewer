@@ -12,21 +12,52 @@
 <script>
 import {
   lightningChart,
+  LegendBoxBuilders,
   // FontSettings,
   SolidLine, SolidFill, ColorRGBA, Themes
 } from '@arction/lcjs';
 
 const colorSet = [
-  ColorRGBA(41, 121, 255),
-  ColorRGBA(255, 23, 68),
-  ColorRGBA(0, 191, 165),
-  ColorRGBA(170, 0, 255),
-  ColorRGBA(84, 110, 122),
-  ColorRGBA(255, 143, 0)
+  [ // T-1A
+    ColorRGBA(255, 194, 0),
+    ColorRGBA(255, 115, 0),
+    ColorRGBA(25, 115, 255),
+    ColorRGBA(0, 56, 255),
+    ColorRGBA(37, 22, 15),
+  ],
+  [ // T-4B
+    ColorRGBA(77, 88, 213),
+    ColorRGBA(115, 117, 230),
+    ColorRGBA(156, 156, 255),
+    ColorRGBA(214, 212, 191),
+    ColorRGBA(7, 9, 12),
+  ],
+  [ // M-2A
+    ColorRGBA(255, 255, 191),
+    ColorRGBA(153, 222, 255),
+    ColorRGBA(41, 74, 235),
+    ColorRGBA(22, 10, 145),
+    ColorRGBA(255, 120, 145),
+  ],
+  [ // M-4B
+    ColorRGBA(0, 15, 201),
+    ColorRGBA(36, 110, 255),
+    ColorRGBA(66, 194, 255),
+    ColorRGBA(102, 255, 179),
+    ColorRGBA(0, 12, 72),
+  ],
+  [ // M-10C
+    ColorRGBA(0, 0, 131),
+    ColorRGBA(48, 64, 194),
+    ColorRGBA(207, 89, 186),
+    ColorRGBA(232, 255, 191),
+    ColorRGBA(4, 4, 35),
+  ]
 ];
 
   export default {
     props: {
+      name: Array,
       data: Array,
     },
     name: 'WaveChart',
@@ -35,7 +66,8 @@ const colorSet = [
       chartId: null,
       db: null,
       chart: null,
-      series: null,
+      series: [],
+      legend: null,
       strokeTheme: [],
     }),
 
@@ -61,7 +93,9 @@ const colorSet = [
           .disableAnimations(false)
           .setTitle('');
 
-        this.chart.onSeriesBackgroundMouseClick(this.getWavePoint);
+        this.legend = this.chart.addLegendBox(LegendBoxBuilders.VerticalLegendBox);
+
+        // this.chart.onSeriesBackgroundMouseClick(this.getWavePoint);
 
         const xAxis = this.chart.getDefaultAxisX();
         xAxis.setChartInteractionPanByDrag(false);
@@ -74,47 +108,29 @@ const colorSet = [
         // yAxis.setChartInteractionZoomByWheel(false);
         // yAxis.setMouseInteractions(false);
 
-        this.createSeries();
+        // this.createSeries();
       },
-      createSeries(){
+      // createSeries(){
+      //   this.strokeTheme.push(new SolidLine({
+      //     fillStyle: new SolidFill({ color: colorSet[0] }),
+      //     thickness: 1
+      //   }));
+
+      //   this.series = this.chart.addLineSeries().setStrokeStyle(this.strokeTheme[0]);
+      // },
+      createSeries(i){
         this.strokeTheme.push(new SolidLine({
-          fillStyle: new SolidFill({ color: colorSet[0] }),
+          fillStyle: new SolidFill({ color: colorSet[i][0] }),
           thickness: 1
         }));
 
-        this.series = this.chart.addLineSeries().setStrokeStyle(this.strokeTheme[0]);
-        // console.log(this.data)
-        // this.series.add(this.data);
-        // console.log(this.data)
-        // this.series.add(this.genDataObj(this.xData, this.yData));
+        const theme = this.strokeTheme;
+        this.series.push(
+          this.chart.addLineSeries()
+          .setName(this.name[i])
+          .setStrokeStyle(theme[theme.length - 1])
+        );
       },
-
-      getWavePoint(obj, e){
-        const cursor = obj.engine.clientLocation2Engine(e.clientX, e.clientY);
-        const near = obj.solveNearest(cursor);
-        if(near !== undefined){
-          const onScale = near.location;
-          this.$emit("wave", Math.floor(onScale.x));
-        }
-      },
-      
-      // renderChart(){
-      //   this.series.clear();
-      //   // this.series.add(this.genDataObj(this.xData, this.yData));
-      //   this.series.add(this.data);
-      // },
-
-      // genDataObj(xArr, yArr){
-      //   const tmp = [];
-      //   const len = xArr.length;
-      //   for(let i=0; i<len; i++){
-      //     const item = new Object();
-      //     item.x = xArr[i];
-      //     item.y = parseInt(yArr[i]);
-      //     tmp.push(item);
-      //   }
-      //   return tmp;
-      // },
     },
 
     watch: {
@@ -122,9 +138,21 @@ const colorSet = [
       data: {
         deep: true,
 
-        handler(){
-          this.series.clear();
-          this.series.add(this.data);
+        handler(val){
+          
+          // this.series.add(this.data);
+
+          const num = val.length;
+
+          for(let i=0; i < num; i++){
+            if(this.series[i] !== undefined){ this.series[i].clear(); }
+            else{ this.createSeries(i); }
+
+            this.series[i].add(val[i]);
+            
+          }
+
+          this.legend.add(this.chart);
         }
       }
     },
