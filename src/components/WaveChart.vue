@@ -14,7 +14,8 @@ import {
   lightningChart,
   LegendBoxBuilders,
   // FontSettings,
-  SolidLine, SolidFill, ColorRGBA, Themes
+  SolidLine, SolidFill, Themes,
+  ColorRGBA, ColorHEX
 } from '@arction/lcjs';
 
 const colorSet = [
@@ -33,11 +34,11 @@ const colorSet = [
     ColorRGBA(7, 9, 12),
   ],
   [ // M-2A
-    ColorRGBA(255, 255, 191),
-    ColorRGBA(153, 222, 255),
-    ColorRGBA(41, 74, 235),
-    ColorRGBA(22, 10, 145),
-    ColorRGBA(255, 120, 145),
+    ColorHEX('#55A3A3'),
+    ColorHEX('#725453'),
+    ColorHEX('#C86A6C'),
+    ColorHEX('#DE9A9D'),
+    ColorHEX('#C4B7BA'),
   ],
   [ // M-4B
     ColorRGBA(0, 15, 201),
@@ -59,6 +60,7 @@ const colorSet = [
     props: {
       name: Array,
       data: Array,
+      clear: Boolean,
     },
     name: 'WaveChart',
 
@@ -66,6 +68,7 @@ const colorSet = [
       chartId: null,
       db: null,
       chart: null,
+
       series: [],
       legend: null,
       strokeTheme: [],
@@ -93,7 +96,7 @@ const colorSet = [
           .disableAnimations(false)
           .setTitle('');
 
-        this.legend = this.chart.addLegendBox(LegendBoxBuilders.VerticalLegendBox);
+        this.legend = this.chart.addLegendBox();
 
         // this.chart.onSeriesBackgroundMouseClick(this.getWavePoint);
 
@@ -120,7 +123,7 @@ const colorSet = [
       // },
       createSeries(i){
         this.strokeTheme.push(new SolidLine({
-          fillStyle: new SolidFill({ color: colorSet[i][0] }),
+          fillStyle: new SolidFill({ color: colorSet[i][2] }),
           thickness: 1
         }));
 
@@ -131,28 +134,47 @@ const colorSet = [
           .setStrokeStyle(theme[theme.length - 1])
         );
       },
+
+      clearChart(){
+        this.series.forEach((s) => {
+          s.clear();
+        });
+        this.series = [];
+
+        this.legend.dispose();
+        this.legend = this.chart.addLegendBox();
+
+        this.strokeTheme = [];
+      }
     },
 
     watch: {
-      // 'yData': 'renderChart',
       data: {
         deep: true,
 
         handler(val){
+          const pre = this.series.length,
+            cur = val.length;
+
+          if(pre > 0 && val === []){
+            return -1;
+          }
           
-          // this.series.add(this.data);
-
-          const num = val.length;
-
-          for(let i=0; i < num; i++){
+          for(let i=0; i < cur; i++){
             if(this.series[i] !== undefined){ this.series[i].clear(); }
             else{ this.createSeries(i); }
 
             this.series[i].add(val[i]);
-            
+            if(pre <= i){ this.legend.add(this.series[i]); }
           }
 
-          this.legend.add(this.chart);
+          // this.legend.add(this.chart);
+        }
+      },
+      clear(val){
+        console.log(val);
+        if(val){
+          this.clearChart();
         }
       }
     },
@@ -166,15 +188,6 @@ const colorSet = [
 
     mounted() {
       this.createDb();
-      
-      // this.createSeries();
-      // this.lightningChart = lightningChart();
-      // this.chartXY = this.lightningChart.ChartXY({
-      //   // chartContainer
-      // });
-      // this.series = this.chartXY.addLineSeries();
-      // const tmp = this.genDataObj(this.xData, this.yData);
-      // this.series.add(tmp);
     }
   }
 </script>

@@ -14,10 +14,10 @@ import {
   lightningChart,
   LegendBoxBuilders,
   // FontSettings,
-  SolidLine, SolidFill, ColorRGBA, Themes
+  SolidLine, SolidFill, Themes,
+  ColorRGBA, ColorHEX
 } from '@arction/lcjs';
 
-// const size = 2048;
 const colorSet = [
   [ // T-1A
     ColorRGBA(255, 194, 0),
@@ -34,11 +34,11 @@ const colorSet = [
     ColorRGBA(7, 9, 12),
   ],
   [ // M-2A
-    ColorRGBA(255, 255, 191),
-    ColorRGBA(153, 222, 255),
-    ColorRGBA(41, 74, 235),
-    ColorRGBA(22, 10, 145),
-    ColorRGBA(255, 120, 145),
+    ColorHEX('#55A3A3'),
+    ColorHEX('#725453'),
+    ColorHEX('#C86A6C'),
+    ColorHEX('#DE9A9D'),
+    ColorHEX('#C4B7BA'),
   ],
   [ // M-4B
     ColorRGBA(0, 15, 201),
@@ -60,6 +60,7 @@ const colorSet = [
     props: {
       name: Array,
       data: Array,
+      clear: Boolean,
     },
     name: 'WatchChart',
 
@@ -67,6 +68,7 @@ const colorSet = [
       chartId: null,
       db: null,
       chart: null,
+
       series: [],
       legend: null,
       strokeTheme: [],
@@ -113,10 +115,9 @@ const colorSet = [
 
         // this.createSeries(0);
       },
-      createSeries(i){
-        // console.log(i)
+      createSeries(i, file){
         this.strokeTheme.push(new SolidLine({
-          fillStyle: new SolidFill({ color: colorSet[this.fileNum][i] }),
+          fillStyle: new SolidFill({ color: colorSet[file][i] }),
           thickness: 1
         }));
 
@@ -126,11 +127,19 @@ const colorSet = [
           .setName(this.name[i])
           .setStrokeStyle(theme[theme.length - 1])
         );
+      },
 
-        // this.legend.add(this.chart);
-        // this.legend = this.chart.addLegendBox(LegendBoxBuilders.VerticalLegendBox);
-        // this.legend = this.chart.addLegendBox(LegendBoxBuilders.VerticalLegendBox,
-        //   { x: this.chart.getDefaultAxisX(), y: this.chart.getDefaultAxisY() } );
+      clearChart(){
+        this.series.forEach((s) => {
+          s.clear();
+        });
+        this.series = [];
+
+        this.legend.dispose();
+        this.legend = this.chart.addLegendBox();
+
+        this.strokeTheme = [];
+        this.fileNum = 0;
       },
 
       getWavePoint(obj, e){
@@ -145,51 +154,28 @@ const colorSet = [
     },
 
     watch: {
-      // name: {
-      //   deep: true,
-
-      //   handler(val){
-      //     console.log(val)
-      //   }
-      // },
       data: {
         deep: true,
 
         handler(val){
+          const cur = val.length;
+          console.log(this.fileNum, cur);
+
           if(this.fileNum === 5){ return -1; }
-          // console.log(val)
-          // const sNum = this.num;
-          const num = val.length;
-          // console.log(num, sNum)
-          for(let i=0; i < num; i++){
-            this.createSeries(i);
-            // console.log(this.series)
+
+          for(let i=0; i < cur; i++){
+            this.createSeries(i, this.fileNum);
+
             this.series[this.series.length - 1].add(val[i]);
             this.legend.add(this.series[this.series.length - 1]);
           }
-
-          // this.num += num;
-          // this.legend = []
-          // this.legend = this.chart.addLegendBox();
-          // console.log(this.chart)
-          // this.legend.add(this.series[]);
           this.fileNum++;
-          
-          // console.log(this.series)
-          // this.series[this.num].clear();
-
-          // this.series[this.num].add(val[this.num]);
-          // this.num++;
-          // this.data.forEach((el, i) => {
-          //   this.series[i].clear();
-          //   this.series[i].add(el);
-          // })
-          // for(let i=0; i<5; i++){
-          //   if(this.data[i].length < 1){ continue; }
-
-          //   this.series[i].clear();
-          //   this.series[i].add(this.data[i]);
-          // }
+        }
+      },
+      clear(val){
+        console.log(val);
+        if(val){
+          this.clearChart();
         }
       }
     },

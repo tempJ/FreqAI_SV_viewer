@@ -41,7 +41,8 @@
 <script>
   export default {
     props: {
-      config: Object
+      config: Object,
+      clear: Boolean,
     },
     name: 'ConfigView',
 
@@ -58,12 +59,20 @@
 
         handler(val){
           console.log(val);
+          if(this.file.length === 5){ return -1; }
+
           this.file.push({
             name: val.name,
             interval: val.interval,
             integration: val.integration,
             sampling: val.sampling,
           });
+        }
+      },
+      clear(val){
+        console.log(val);
+        if(val){
+          this.file = [];
         }
       }
     }

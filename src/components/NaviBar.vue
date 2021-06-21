@@ -44,7 +44,7 @@
 
     <v-btn
     icon
-    @click="addDisabled = true"
+    @click="clearAll"
     >
       <v-icon color="error">delete</v-icon>
     </v-btn>
@@ -194,54 +194,39 @@ import fs from 'fs';
 import { remote } from 'electron';
 
 const dialog = remote.dialog;
+const snack = {
+  'clear': { suc: 0, msg: 'Clear all files.' },
+  'load': {
+    'success': { suc: 1, msg: 'Success load file.' },
+    'dont': { suc: 0, msg: 'No file loaded.' },
+    'filemax': { suc: 0, msg: 'The maximum number of files has been exceeded.' },
+    'invalid': { suc: -1, msg: 'Invalid file format.' },
+    'format': { suc: -1, msg: 'Different format type.' },
+    'hwtype': { suc: -1, msg: 'Different HWType.' },
+  }
+}
 
   export default {
-    props: {
-      // save: Object
-    },
     name: 'NaviBar',
 
     data: () => ({
-      drawer: true,
-      mini: true,
+      // drawer: true,
+      // mini: true,
       theme: 0,
       color: ['white', '#EEEEEE', 'normal'],
+      addDisabled: true,
+
       isFile: false,
-      name: '-',
+
+      // name: '-',
       format: '-',
       hwType: '-',
-      addDisabled: true,
-      // file: [],
-      // err: null,
-      // send: new Object(),
-      // config: new Object()
-
-      // config: new Object(),
-      // recipe: {
-      //   path: 'C:/Users/Administrator/Documents/FreqAi SV/csv',
-      //   interval: 100,
-      //   integration: 25,
-      //   sampling: 1000,
-      //   auto: {
-      //     start: 0,
-      //     end: 0,
-      //     threshold: 10000,
-      //     use: true
-      //   },
-      //   wave: [
-      //     { view: false, start: 0, end: 0 },
-      //     { view: false, start: 0, end: 0 },
-      //     { view: false, start: 0, end: 0 },
-      //     { view: false, start: 0, end: 0 },
-      //     { view: false, start: 0, end: 0 },
-      //   ],
-      // }
     }),
 
     methods: {
       async loadCsv(isFile = false){
         dialog.showOpenDialog({
-          title: 'Open Csv',
+          // title: 'Open Csv',
           // defaultPath: this.recipe.path,
           filters: [
             { 'name': 'Csv Files(*.csv)', 'extensions': ['csv'] },
@@ -250,11 +235,17 @@ const dialog = remote.dialog;
           properties: ['openFile']
         })
           .then((res) => {
-            // const file = [];
+            if(res.filePaths.length < 1){
+              this.$emit("snack", snack.load.dont);
+              return -1;
+            }
             const path = res.filePaths[0];
 
             fs.readFile(path, 'utf-8', (err, data) => {
-              if(err !== null){ return -1; }
+              if(err !== null){
+                this.$emit("snack", { suc: -1, msg: err });
+                return -1;
+              }
 
               const file = data.split('\r\n').map((el) => { return el.split(','); });
 
@@ -274,33 +265,59 @@ const dialog = remote.dialog;
               // }
 
               const prefix = file.splice(0, 5);
-              // console.log(file)
-              // const p = file;
-              // console.log(prefix)
-              // console.log(file)
-              console.log(isFile)
 
-              if(!this.isValidForm(prefix, file, isFile)){
-                console.log('CSV file format is invalid.');
+              if(!this.isValidForm(prefix, file)){
+                this.$emit("snack", snack.load.invalid);
                 return -1;
               }
 
-              this.sendFile(path.split('\\').pop(), prefix, file, isFile);
-              if(!isFile){ this.addDisabled = false; }
+              if(isFile){
+                if(prefix[0][0].split(":")[1] !== this.format){
+                  this.$emit("snack", snack.load.format);
+                  return false;
+                }
+                if(prefix[1][0].split(":")[1] !== this.hwType){
+                  this.$emit("snack", snack.load.hwtype);
+                  return false;
+                }
+              }
+              else{
+                this.addDisabled = false;
+              }
+
+              const name = path.split('\\').pop().split('.');
+
+              this.sendFile(name.slice(0, name.length - 1).join('.'), prefix, file, isFile);
+              this.$emit("snack", snack.load.success);
+              // if(!isFile){ this.addDisabled = false; }
+              
             });
           })
           .catch();
       },
+
+      clearAll(){
+        this.isFile = false;
+
+        this.format = '-';
+        this.hwType = '-';
+
+        this.addDisabled = true;
+
+        this.$emit("clear", true);
+        this.$emit("snack", snack.clear);
+      },
+
       sendFile(name, prefix, data, isFile){
         if(!isFile){
-          this.name = name;
+          // this.name = (name === '')? 'no name' : name;
           this.format = prefix[0][0].split(':')[1];
           this.hwType = prefix[1][0].split(':')[1];
         }
 
         const send = new Object();
 
-        send.name = name;
+        send.name = ((name==='') || (name===null))? 'no name' : name;
         send.integration = parseInt(prefix[3][0].split(':')[1]);
         send.interval = parseInt(prefix[3][1].split(':')[1]);
         send.sampling = parseInt(prefix[3][2].split(':')[1]);
@@ -322,116 +339,60 @@ const dialog = remote.dialog;
             'data': el.slice(len + 3).map(ret => parseFloat(ret))
           };
         });
-        // console.log(data)
-        // const watch = [];
-        // const len = this.send.wave.length;
-        // data.forEach((line) => {
-        //   watch.push({
-        //     'serial': [parseInt(line[1]), parseInt(line[2])],
-        //     'wave': line.splice(3, len + 3),
-        //     'data': line.splice(len + 3)
-        //   });
-        // })
-        // this.send.watch = watch;
-        // this.send.watch = data.map((el) => {
-        //   console.log(el)
-        //   return line
-        // })
-        // .map((line) => {
-        //   const item = line.split(',');
-        //   const len = this.send.wave.length;
-        //   return {
-        //     'time': item[0],
-        //     'serial': [item[1], item[2]],
-        //     'wave': item.splice(3, len + 3),
-        //     'data': item.splice(len + 3)
-        //   };
-        //   item.map((el) => {
-        //     return {
-        //       'time': el[0],
-        //       'serial': []
-        //     }
-        //     const num = parseInt(el);
-        //     return isNaN(num)? el : num;
-        //     // if(isNaN(num)){ return el; }
-        //     // else
-        //   });
-        // });
-        
-        // const watch = [];
-        // const slice = file.slice(5, file.length - 1);
 
-        // slice.forEach((line) => {
-        //   const tmp = line.map((el, i) => {
-        //     if(i === 0){ return el; }
-        //     else{ return parseInt(el); }
-        //   });
-        //   watch.push(tmp);
-        // });
-        // this.send.watch = watch;
-        console.log(send)
-        
+        console.log(send);
         this.$emit("file", send);
         this.$emit("config", send);
-        // this.isFile = true;
       },
 
-      // setConfig(){
-      //   Object.assign(this.config, this.recipe);
-      //   this.$emit("config", this.config);
-      // },
+      isValidProperty(property){
+        const split = property.split(':');
 
-      isValidForm(prefix, data, isFile){
+        if(split.length !== 2){ return false; }
+        if(split.find((val) => val === '') !== undefined){ return false; }
+        return true;
+      },
+
+      isValidForm(prefix, data){
+        // console.log(1);
         if(prefix.length !== 5 || data.length < 1){ return false; }
+        // console.log(2);
 
         const form = prefix.slice(0, 2);
         const config = prefix.slice(3);
         let watch;
-        
-        form.forEach((line) => {
-          // console.log(line[])
-          const tmp = line[0].split(":");
 
-          if(tmp.length !== 2){ return false; }
+        for(const line of form){
+          if(!this.isValidProperty(line[0])){ return false; }
+          // console.log(3);
+        }
 
-          // if(i == 0){
-          //   if(tmp[1] !== '1'){ return false; }
-          // }
-          // else if(i == 1){
-          //   if(tmp[1] !== 'SPdbUSBm'){ return false; }
-          // }
-          // else{}
-        });
+        for(const line of config){
+          const idx = config.indexOf(line);
 
-        config.forEach((line, i) => {
-          const tmp = line[0].split(",");
-
-          if(i == 0){
-            if(tmp.length !== 3){ return false; }
-            if(tmp[0].split(":").length !== 2){ return false; }
-            if(tmp[1].split(":").length !== 2){ return false; }
-            if(tmp[2].split(":").length !== 2){ return false; }
+          if(idx === 0){
+            if(line.length !== 3){ return false; }
+            // console.log(4, idx);
+            for(const el of line){
+              if(!this.isValidProperty(el)){ return false; }
+              // console.log(5, el);
+            }
           }
-          else if(i == 1){
-            if(tmp.length < 3){ return false; }
-            watch = tmp.length - 3;
+          else if(idx === 1){
+            if(line.length < 4){ return false; }
+            // console.log(6, idx);
+            if(line.find((val) => val === '') !== undefined){ return false; }
+            // console.log(7, idx);
+            watch = line.length - 3;
           }
           else{}
-        });
-
-        data.forEach((line) => {
-          const tmp = line[0].split(",");
-
-          if(tmp.length !== watch + 3){ return false; }
-        });
-
-        if(isFile){
-          if(form[0][0].split(":")[1] !== this.format){ return false; }
-          if(form[1][0].split(":")[1] !== this.hwType){ return false; }
         }
-        
-        // const date = prefix[2].split(" ")[1].split(":")[1];
-        // const time = prefix[2].split(" ")[2].split("(ms)")[0];
+
+        for(const line of data){
+          // console.log(8, line.length);
+          if(line.length !== (watch+2083)){ return false; }
+          
+        }
 
         return true;
       }
