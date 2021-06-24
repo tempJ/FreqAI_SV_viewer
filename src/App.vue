@@ -18,7 +18,7 @@
     shaped
     :color="(snack.suc === 0)? 'primary' : ((snack.suc === -1)? 'error' : 'success')"
     v-model="snackbar"
-    timeout=2000
+    timeout=3000
     >
     {{ snack.msg }}
       <template v-slot:action="{ attrs }">

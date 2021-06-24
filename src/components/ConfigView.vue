@@ -14,7 +14,7 @@
               <tbody>
                 <tr>
                   <td>File Name</td>
-                  <td>{{ f.name }}</td>
+                  <td>#file{{ idx + 1 }}: {{ f.name }}</td>
                 </tr>
                 <tr>
                   <td>Interval Time</td>

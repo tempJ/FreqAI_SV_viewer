@@ -20,20 +20,8 @@
 import WaveChart from './WaveChart';
 import WatchChart from './WatchChart';
 
-// constant
-const size = 2080;
-const xArr = genSeqArr();
-
 const snack = {
   'nowave': { suc: -1, msg: 'Select the wrong point.' }
-}
-
-function genSeqArr(){
-  const tmp = [];
-  for(let i=0; i<size; i++){
-    tmp.push(i);
-  }
-  return tmp;
 }
 
   export default {
@@ -50,6 +38,7 @@ function genSeqArr(){
 
     data: () => ({
       fileArr: [],
+      wL: [],
       data2080: [],
       data5: [],
       name: [],
@@ -77,8 +66,8 @@ function genSeqArr(){
             this.data2080.push([]);
           }
           else if(f.watch[idx].data !== undefined){
-            this.name.push(f.name);
-            this.data2080.push(this.genDataObj(xArr, f.watch[idx].data));
+            this.name.push('#file' + (i + 1));
+            this.data2080.push(this.genDataObj(this.wL, f.watch[idx].data));
           }
           else{
             this.name.push(f.name);
@@ -91,16 +80,20 @@ function genSeqArr(){
         return Math.round(time / this.fileArr[file].interval);
       },
 
+      // genDataObj(xArr, yArr){
+      //   const tmp = [];
+      //   const len = xArr.length;
+      //   for(let i=0; i<len; i++){
+      //     const item = new Object();
+      //     item.x = xArr[i];
+      //     item.y = yArr[i];
+      //     tmp.push(item);
+      //   }
+      //   return tmp;
+      // },
+
       genDataObj(xArr, yArr){
-        const tmp = [];
-        const len = xArr.length;
-        for(let i=0; i<len; i++){
-          const item = new Object();
-          item.x = xArr[i];
-          item.y = yArr[i];
-          tmp.push(item);
-        }
-        return tmp;
+        return xArr.map((el, i) => { return { 'x': el, 'y': yArr[i] }; });
       },
     },
 
@@ -116,12 +109,16 @@ function genSeqArr(){
             num = val.wave.length,
             intv = val.interval;
 
+          // this.wave2080 = val.table;
+
           let serise = [];
           this.wave = [];
 
           for(let i=0; i<num; i++){
-            const range = (val.wave[i].start === val.wave[i].end)?
-              '' + val.wave[i].start : val.wave[i].start + '~' + val.wave[i].end;
+            const start = val.wave[i].start,
+              end = val.wave[i].end;
+            const range = (start === end)?
+              '' + start.toFixed(2) : start.toFixed(2) + '~' + end.toFixed(2);
             this.wave.push(range);
             serise.push(new Array(len));
           }
@@ -149,7 +146,10 @@ function genSeqArr(){
     },
 
     created() {
-    }
+      this.wL = new Array(2048).fill(0).map((el, i) => { return i; })
+      // console.log(this.wave2080);
+    },
+    // mounted() {}
   }
 </script>
 

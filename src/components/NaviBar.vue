@@ -192,6 +192,8 @@
 <script>
 import fs from 'fs';
 import { remote } from 'electron';
+import ffi from 'ffi-napi';
+import ref from 'ref-napi';
 
 const dialog = remote.dialog;
 const snack = {
@@ -205,6 +207,11 @@ const snack = {
     'hwtype': { suc: -1, msg: 'Different HWType.' },
   }
 }
+
+// const doublePtr = ref.refType(ref.types.double);
+// const SPdbUSBm = ffi.Library('./src/libs/SPdbUSBm', {
+//   'spGetWLTable': [ 'short', [ doublePtr, 'short' ] ]
+// });
 
   export default {
     name: 'NaviBar',
@@ -308,7 +315,7 @@ const snack = {
         this.$emit("snack", snack.clear);
       },
 
-      sendFile(name, prefix, data, isFile){
+      async sendFile(name, prefix, data, isFile){
         if(!isFile){
           // this.name = (name === '')? 'no name' : name;
           this.format = prefix[0][0].split(':')[1];
@@ -321,15 +328,19 @@ const snack = {
         send.integration = parseInt(prefix[3][0].split(':')[1]);
         send.interval = parseInt(prefix[3][1].split(':')[1]);
         send.sampling = parseInt(prefix[3][2].split(':')[1]);
-        
-        send.wave = prefix[4].slice(3).map((el) => {
+
+        const end = prefix[4].length - 2048;
+        send.wave = prefix[4].slice(3, end).map((el) => {
           const range = el.split('~');
           return {
             'view': true,
-            'start': parseInt(range[0]),
-            'end': parseInt(range[range.length - 1])
+            'start': parseFloat(range[0]),
+            'end': parseFloat(range[range.length - 1])
           };
         });
+
+        send.wL = prefix[4].slice(end).map((el) => {return parseFloat(el); });
+        // console.log(send.wL);
 
         const len = send.wave.length;
         send.watch = data.map((el) => {
@@ -354,9 +365,7 @@ const snack = {
       },
 
       isValidForm(prefix, data){
-        // console.log(1);
         if(prefix.length !== 5 || data.length < 1){ return false; }
-        // console.log(2);
 
         const form = prefix.slice(0, 2);
         const config = prefix.slice(3);
@@ -364,7 +373,6 @@ const snack = {
 
         for(const line of form){
           if(!this.isValidProperty(line[0])){ return false; }
-          // console.log(3);
         }
 
         for(const line of config){
@@ -372,30 +380,78 @@ const snack = {
 
           if(idx === 0){
             if(line.length !== 3){ return false; }
-            // console.log(4, idx);
             for(const el of line){
               if(!this.isValidProperty(el)){ return false; }
-              // console.log(5, el);
             }
           }
           else if(idx === 1){
-            if(line.length < 4){ return false; }
-            // console.log(6, idx);
+            if(line.length < 2052){ return false; }
             if(line.find((val) => val === '') !== undefined){ return false; }
-            // console.log(7, idx);
-            watch = line.length - 3;
+            watch = line.length;
           }
           else{}
         }
+        console.log(watch);
 
         for(const line of data){
-          // console.log(8, line.length);
-          if(line.length !== (watch+2083)){ return false; }
-          
+          // console.log(line.length)
+          if(line.length < watch){ return false; }
         }
 
         return true;
-      }
+      },
+
+      allocBuffer(type, size){
+        switch (type) {
+          case 'short':
+            return Buffer.alloc(size*2);
+
+          case 'long':
+            return Buffer.alloc(size*4);
+
+          case 'double':
+            return Buffer.alloc(size*8);
+
+          default:
+            return Buffer.alloc(size);
+        }
+      },
+      
+      buff2Arr(buff, type){
+        const size = buff.length;
+        if(size < 2){ return -1; }
+        if((size < 4) && (type === 'long')){ return -1; }
+        if((size < 8) && (type === 'double')){ return -1; }
+        // let arr8 = new Uint8Array(buff);
+
+        // let arr;
+        if(type === 'short'){
+          return new Int16Array(new Uint8Array(buff).buffer).map((el) => { return el });
+        }
+        else if(type === 'long'){
+          // arr = new Int32Array(new Uint8Array(buff).buffer);
+          return new Int32Array(new Uint8Array(buff).buffer).map((el) => { return el });
+        }
+        else if(type === 'double'){
+          // arr = new Float64Array(new Uint8Array(buff).buffer);
+          return new Float64Array(new Uint8Array(buff).buffer).map((el) => { return el });
+        }
+        else{
+          return -1;
+        }
+
+        // let ret = [];
+        // arr.forEach((el) => {
+        //   ret.push(el);
+        // })
+
+        // return ret;
+      },
+
+      // async getWLTable(p, ch){
+      //   const ret = await SPdbUSBm.spGetWLTable(p, ch);
+      //   return ret;
+      // },
     },
   }
 </script>

@@ -113,14 +113,6 @@ const colorSet = [
 
         // this.createSeries();
       },
-      // createSeries(){
-      //   this.strokeTheme.push(new SolidLine({
-      //     fillStyle: new SolidFill({ color: colorSet[0] }),
-      //     thickness: 1
-      //   }));
-
-      //   this.series = this.chart.addLineSeries().setStrokeStyle(this.strokeTheme[0]);
-      // },
       createSeries(i){
         this.strokeTheme.push(new SolidLine({
           fillStyle: new SolidFill({ color: colorSet[i][2] }),
